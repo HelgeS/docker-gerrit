@@ -1,42 +1,37 @@
 # gerrit
 #
-# VERSION               0.0.2
 
-FROM  ubuntu:trusty
+FROM ubuntu:trusty
 
 MAINTAINER Larry Cai <larry.caiyu@gmail.com>
 
-ENV GERRIT_HOME /home/gerrit
-ENV GERRIT_USER gerrit
-ENV GERRIT_WAR /home/gerrit/gerrit.war
-
-RUN echo "deb http://archive.ubuntu.com/ubuntu trusty main universe" > /etc/apt/sources.list
-
-# comment out the following line if you don't have a local deb proxy
-#RUN IPADDR=$( ip route | grep default | awk '{print $3}' ) ;echo "Acquire::http { Proxy \"http://$IPADDR:3142\"; };"| tee -a /etc/apt/apt.conf.d/01proxy
-
-RUN apt-get update
-RUN apt-get upgrade
-
+ENV GERRIT_USER gerrit2
+ENV GERRIT_HOME /home/${GERRIT_USER}
+ENV GERRIT_WAR ${GERRIT_HOME}/gerrit.war
+ENV GERRIT_VERSION 2.9.3
 RUN useradd -m ${GERRIT_USER}
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-6-jre-headless sudo git-core supervisor vim-tiny
-RUN mkdir -p /var/log/supervisor
 
-ADD http://gerrit-releases.storage.googleapis.com/gerrit-2.8.5.war /tmp/gerrit.war
-#ADD gerrit-2.8.war /tmp/gerrit.war
-ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-7-jre-headless git-core vim
 
-RUN mkdir -p $GERRIT_HOME/gerrit
+ADD http://gerrit-releases.storage.googleapis.com/gerrit-${GERRIT_VERSION}.war /tmp/gerrit.war
+ADD . /app
+
 RUN mv /tmp/gerrit.war $GERRIT_WAR
 RUN chown -R ${GERRIT_USER}:${GERRIT_USER} $GERRIT_HOME
-#RUN rm -f /etc/apt/apt.conf.d/01proxy
 
-USER gerrit
-RUN java -jar $GERRIT_WAR init --batch -d $GERRIT_HOME/gerrit
+USER $GERRIT_USER
+WORKDIR $GERRIT_HOME
+
+ENV JAVA_HOME /usr/lib/jvm/java-7-openjdk-amd64/jre
+RUN java -jar $GERRIT_WAR init --batch -d ${GERRIT_HOME}/gerrit
 
 # clobber the gerrit config. set the URL to localhost:8080
 ADD gerrit.config $GERRIT_HOME/gerrit/etc/gerrit.config
 
-USER root
+# https://gerrit-documentation.storage.googleapis.com/Documentation/2.9.3/config-gerrit.html#auth
+# ENV AUTH_TYPE OpenID
+
+ENV AUTH_TYPE DEVELOPMENT_BECOME_ANY_ACCOUNT
+
 EXPOSE 8080 29418
-CMD ["/usr/sbin/service","supervisor","start"]
+CMD ["/app/start.sh"]
