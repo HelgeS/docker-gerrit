@@ -13,7 +13,7 @@ RUN useradd -m ${GERRIT_USER}
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-7-jre-headless git-core vim
 
-ADD http://gerrit-releases.storage.googleapis.com/gerrit-${GERRIT_VERSION}.war /tmp/gerrit.war
+ADD https://gerrit-releases.storage.googleapis.com/gerrit-${GERRIT_VERSION}.war /tmp/gerrit.war
 ADD . /app
 
 RUN mv /tmp/gerrit.war $GERRIT_WAR
